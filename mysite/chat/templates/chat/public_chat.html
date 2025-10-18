@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Public Chat</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x" defer></script>
+    <style>
+        body { font-family: sans-serif; margin: 2rem; }
+        #chat-box { border: 1px solid #ddd; height: 400px; overflow-y: scroll; padding: 1rem; }
+        li { margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body x-data="chatApp()" x-init="init()">
+    <h2>🌐 Public Chatroom</h2>
+
+    <div id="chat-box">
+        <ul>
+            {% for m in messages %}
+                <li><strong>{{ m.user.username|default:"Anon" }}:</strong> {{ m.content }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div style="margin-top:1rem;">
+        <input x-model="message" placeholder="Type a message..." @keyup.enter="send()" />
+        <button @click="send()">Send</button>
+    </div>
+
+<script>
+function chatApp() {
+    return {
+        ws: null,
+        message: '',
+        init() {
+            this.ws = new WebSocket('ws://' + window.location.host + '/ws/chat/');
+            this.ws.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                if (data.message && data.user) {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<strong>${data.user}:</strong> ${data.message}`;
+                    document.querySelector('#chat-box ul').appendChild(li);
+                    document.querySelector('#chat-box').scrollTop = 999999;
+                }
+            };
+        },
+        send() {
+            if (this.message.trim() === '') return;
+            this.ws.send(JSON.stringify({ message: this.message }));
+            this.message = '';
+        }
+    }
+}
+</script>
+</body>
+</html>
